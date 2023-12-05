@@ -1,3 +1,9 @@
+<?php
+require_once('api/booking.php');
+require_once('api/item.php');
+$booking = new Booking();
+$item = new Item();
+?>
 <!DOCTYPE html>
 <html lang='en'>
 
@@ -28,12 +34,15 @@
 
 
     <script>
+        var scheds = getAllBooking();
+        console.log(scheds)
+        console.log(getAllItem())
         document.addEventListener('DOMContentLoaded', () => {
             var calendarEl = document.getElementById('calendar');
             var calendar = new FullCalendar.Calendar(calendarEl, {
                 headerToolbar: {
                     left: 'prev,next today',
-                    right: 'dayGridMonth,list',
+                    right: 'dayGridMonth,list myCustomButton',
                     center: 'title',
                 },
                 buttonText: {
@@ -53,6 +62,22 @@
                 moreLinkText: 'เพิ่มเติม',
                 noEventsText: 'ไม่มีการจองวันนี้',
                 locale: 'th',
+                events: getAllBooking().map((data) => {
+                    return {
+                        id: data.id,
+                        title: data.name + " จองโดย: " + data.fullname,
+                        start: data.date_start,
+                        end: data.date_end,
+                        // allDay: true,
+                    }
+                }),
+                eventTimeFormat: { // like '14:30:00'
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    hour12: false
+                },
+
 
                 // initialView: 'dayGridMonth',
                 // dateClick: function () {
@@ -64,7 +89,15 @@
                     $('#staticBackdrop').modal('toggle');
                     // $('#create-booking').prop('disabled', false);
                     // $('#cancel-booking').prop('disabled', false);
-                }
+                },
+                customButtons: {
+                    myCustomButton: {
+                        text: 'custom!',
+                        click: function () {
+                            alert('clicked the custom button!');
+                        }
+                    }
+                },
             });
             // calendar.getOption('locale');
             // calendar.setOption('locale', 'th');
@@ -72,38 +105,68 @@
 
         });
 
-        // jqery event ================================================
-        function c() {
-            $('#staticBackdrop').modal('toggle');
+        function getAllBooking() {
+            return $.parseJSON('<?= json_encode($booking->getAllBooking()) ?>');
         }
+
+        function getAllItem() {
+            return $.parseJSON('<?= json_encode($item->getAllItem()) ?>');
+        }
+        // jqery event ===============================================
+
         $(document).ready(() => {
-            $('#create-booking').click(async () => {
-                await setModalLoading(true);
+            const item = getAllItem()
+            item.forEach(element => {
+                $('#select-create').append('<option value="'+element.id+'">'+element.name+'</option>')
+            });
+            $('#form-create-booking').submit((e) => {
+                //prevent Default functionality
+                // console.log(e.target)
+                e.preventDefault();
+
+
+                var formData = {
+                    fullname: $("#fullnanme").val(),
+                    item_id: $("#select-create").val(),
+                    date_start: $("#date-start").val().toISOString().slice(0, 19).replace("T", " "),
+                    date_end:$("#date-end").val().toISOString().slice(0, 19).replace("T", " "),
+                };
+
+
+                const booking_all = getAllBooking();
+
+                console.log(booking_all[0].date_start < formData.date_start)
+                console.log(booking_all[0].date_start);
+                console.log(formData.date_start);
+                const filter_date_start = booking_all.filter(data => data.date_start >= formData.date_start && data.date_end <= formData.date_end)
+                console.log(filter_date_start);
+                if (filter_date_start.length == 0) {
+                    alert('err')
+                    return 
+                }
+
+
+
+
+                setModalLoading(true);
                 // $('#create-booking').prop('disabled', true);
                 // $('#cancel-booking').prop('disabled', true);
                 // $('#loadingBackdrop').modal('toggle');
                 // if ($('#create-booking').attr('disabled') == true) {
                 // console.log('c')
                 // }
-                await setTimeout(async () => {
+                setTimeout(async () => {
                     await setModalLoading(false);
                     await Swal.fire({
                         position: "top-end",
                         icon: "success",
-                        title: "Your work has been saved",
+                        title: "สำเร็จ",
                         showConfirmButton: false,
                         timer: 1500
                     });
-                    window.location.reload();
+                    // window.location.reload();
                 }, 10000);
-                await console.log($('#create-booking'));
-
-
-
-
-
             })
-
         });
         const setModalLoading = (status) => {
             if (status) {
@@ -154,11 +217,6 @@
         --fc-today-bg-color: rgba(255, 220, 100, 0.15);
         --fc-now-indicator-color: green;
     }
-    #create-booking {
-        background-color: #FFDEAD;
-        border-color: #FFDEAD;
-        text-emphasis-color: #0000;
-    }
 </style>
 
 <body>
@@ -188,19 +246,29 @@
                     </button> -->
                 </div>
                 <div class="modal-body">
-                    <form>
+                <form id="form-create-booking">
                         <div class="form-group">
-                            <label for="recipient-name" class="col-form-label">Recipient:</label>
-                            <input type="text" class="form-control" id="recipient-name">
+                            <label for="fullanme" class="col-form-label">ชื่อ - สกุล :</label>
+                            <input type="text" class="form-control" id="fullnanme" name="fullnanme" required>
                         </div>
                         <div class="form-group">
-                            <label for="message-text" class="col-form-label">Message:</label>
-                            <input type="text" class="form-control" id="recipient-name">
+                            <label for="select-create" class="col-form-label">จอง :</label>
+                            <select class="custom-select" id="select-create" required>
+                                <option value="0" selected>โปรดเลือก</option>
+                            </select>
                         </div>
-                    </form>
+                        <div class="form-group">
+                            <label for="date-start" class="col-form-label">เริ่ม :</label>
+                            <input type="datetime-local" class="form-control" id="date-start" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="date-end" class="col-form-label">สิ้นสุด :</label>
+                            <input type="datetime-local" class="form-control" id="date-end" required>
+                        </div>
+                    
                 </div>
                 <div class="modal-footer text-center">
-                    <button class="btn btn-primary" type="button" id="create-booking">
+                    <button class="btn btn-primary" type="summit" id="create-booking">
                         <span class="spinner-grow spinner-grow-sm d-none" role="status" aria-hidden="true"></span>
                         ยืนยัน
                     </button>
@@ -210,6 +278,7 @@
                         ยกเลิก</button>
 
                 </div>
+                </form>
             </div>
         </div>
     </div>
