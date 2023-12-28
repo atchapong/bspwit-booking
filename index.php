@@ -8,6 +8,7 @@ $item = new Item();
 <html lang='en'>
 
 <head>
+    <title>ระบบจอง โรงเรียนบางสะพานวิทยา</title>
     <meta charset='utf-8' />
     <!-- <script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "dc4641f860664c6e824b093274f50291"}'></script> -->
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
